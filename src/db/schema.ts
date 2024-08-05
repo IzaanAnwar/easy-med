@@ -12,10 +12,8 @@ import {
 } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
 
-export const usersTable = pgTable("users", {
-  id: text("id")
-    .primaryKey()
-    .$defaultFn(() => crypto.randomUUID()),
+export const users = pgTable("users", {
+  id: text("id").primaryKey(),
   name: varchar("name", { length: 255 }).notNull(),
   email: varchar("email", { length: 255 }).notNull().unique(),
   passwordHash: varchar("password_hash", { length: 255 }).notNull(),
@@ -24,10 +22,10 @@ export const usersTable = pgTable("users", {
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
 
-export const doctorsTable = pgTable("doctors", {
+export const doctors = pgTable("doctors", {
   id: text("id")
     .primaryKey()
-    .references(() => usersTable.id)
+    .references(() => users.id)
     .$defaultFn(() => crypto.randomUUID()),
   specialization: varchar("specialization", { length: 255 }).notNull(),
   phone: varchar("phone", { length: 20 }).notNull(),
@@ -36,16 +34,16 @@ export const doctorsTable = pgTable("doctors", {
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
 
-export const adminsTable = pgTable("admins", {
+export const admins = pgTable("admins", {
   id: text("id")
     .primaryKey()
-    .references(() => usersTable.id)
+    .references(() => users.id)
     .$defaultFn(() => crypto.randomUUID()),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
 
-export const appointmentsTable = pgTable(
+export const appointments = pgTable(
   "appointments",
   {
     id: text("id")
@@ -53,10 +51,10 @@ export const appointmentsTable = pgTable(
       .$defaultFn(() => crypto.randomUUID()),
     userId: text("user_id")
       .notNull()
-      .references(() => usersTable.id),
+      .references(() => users.id),
     doctorId: text("doctor_id")
       .notNull()
-      .references(() => doctorsTable.id),
+      .references(() => doctors.id),
     appointmentDate: date("appointment_date").notNull(),
     startTime: time("start_time").notNull(),
     endTime: time("end_time").notNull(),
@@ -78,7 +76,7 @@ export const appointmentsTable = pgTable(
   }
 );
 
-export const schedulesTable = pgTable(
+export const schedules = pgTable(
   "schedules",
   {
     id: text("id")
@@ -86,7 +84,7 @@ export const schedulesTable = pgTable(
       .$defaultFn(() => crypto.randomUUID()),
     doctorId: text("doctor_id")
       .notNull()
-      .references(() => doctorsTable.id),
+      .references(() => doctors.id),
     dayOfWeek: varchar("day_of_week", {
       enum: [
         "Monday",
@@ -114,13 +112,13 @@ export const schedulesTable = pgTable(
   }
 );
 
-export const symptomsTable = pgTable("symptoms", {
+export const symptoms = pgTable("symptoms", {
   id: text("id")
     .primaryKey()
     .$defaultFn(() => crypto.randomUUID()),
   userId: text("user_id")
     .notNull()
-    .references(() => usersTable.id),
+    .references(() => users.id),
   symptomDescription: text("symptom_description").notNull(),
   severity: integer("severity").notNull(),
   dateReported: timestamp("date_reported").notNull().defaultNow(),
@@ -128,19 +126,19 @@ export const symptomsTable = pgTable("symptoms", {
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
 
-export const prescriptionsTable = pgTable("prescriptions", {
+export const prescriptions = pgTable("prescriptions", {
   id: text("id")
     .primaryKey()
     .$defaultFn(() => crypto.randomUUID()),
   appointmentId: text("appointment_id")
     .notNull()
-    .references(() => appointmentsTable.id),
+    .references(() => appointments.id),
   doctorId: text("doctor_id")
     .notNull()
-    .references(() => doctorsTable.id),
+    .references(() => doctors.id),
   userId: text("user_id")
     .notNull()
-    .references(() => usersTable.id),
+    .references(() => users.id),
   diagnosis: text("diagnosis").notNull(),
   interactionDetails: text("interaction_details").notNull(),
   medicines: text("medicines").notNull(),
@@ -149,91 +147,85 @@ export const prescriptionsTable = pgTable("prescriptions", {
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
 
-export const adminLogsTable = pgTable("admin_logs", {
+export const adminLogs = pgTable("admin_logs", {
   id: text("id")
     .primaryKey()
     .$defaultFn(() => crypto.randomUUID()),
   adminId: text("admin_id")
     .notNull()
-    .references(() => adminsTable.id),
+    .references(() => admins.id),
   action: text("action").notNull(),
   details: text("details"),
   timestamp: timestamp("timestamp").notNull().defaultNow(),
 });
 
 // table relations
-export const usersRelations = relations(usersTable, ({ one, many }) => ({
-  doctor: one(doctorsTable),
-  admin: one(adminsTable),
-  appointments: many(appointmentsTable),
-  symptoms: many(symptomsTable),
+export const usersRelations = relations(users, ({ one, many }) => ({
+  doctor: one(doctors),
+  admin: one(admins),
+  appointments: many(appointments),
+  symptoms: many(symptoms),
 }));
 
-export const doctorsRelations = relations(doctorsTable, ({ one, many }) => ({
-  user: one(usersTable, {
-    fields: [doctorsTable.id],
-    references: [usersTable.id],
+export const doctorsRelations = relations(doctors, ({ one, many }) => ({
+  user: one(users, {
+    fields: [doctors.id],
+    references: [users.id],
   }),
-  appointments: many(appointmentsTable),
-  schedules: many(schedulesTable),
+  appointments: many(appointments),
+  schedules: many(schedules),
 }));
 
-export const adminsRelations = relations(adminsTable, ({ one }) => ({
-  user: one(usersTable, {
-    fields: [adminsTable.id],
-    references: [usersTable.id],
-  }),
-}));
-
-export const appointmentsRelations = relations(
-  appointmentsTable,
-  ({ one }) => ({
-    user: one(usersTable, {
-      fields: [appointmentsTable.userId],
-      references: [usersTable.id],
-    }),
-    doctor: one(doctorsTable, {
-      fields: [appointmentsTable.doctorId],
-      references: [doctorsTable.id],
-    }),
-  })
-);
-
-export const schedulesRelations = relations(schedulesTable, ({ one }) => ({
-  doctor: one(doctorsTable, {
-    fields: [schedulesTable.doctorId],
-    references: [doctorsTable.id],
+export const adminsRelations = relations(admins, ({ one }) => ({
+  user: one(users, {
+    fields: [admins.id],
+    references: [users.id],
   }),
 }));
 
-export const symptomsRelations = relations(symptomsTable, ({ one }) => ({
-  user: one(usersTable, {
-    fields: [symptomsTable.userId],
-    references: [usersTable.id],
+export const appointmentsRelations = relations(appointments, ({ one }) => ({
+  user: one(users, {
+    fields: [appointments.userId],
+    references: [users.id],
+  }),
+  doctor: one(doctors, {
+    fields: [appointments.doctorId],
+    references: [doctors.id],
   }),
 }));
 
-export const prescriptionsRelations = relations(
-  prescriptionsTable,
-  ({ one }) => ({
-    appointment: one(appointmentsTable, {
-      fields: [prescriptionsTable.appointmentId],
-      references: [appointmentsTable.id],
-    }),
-    doctor: one(doctorsTable, {
-      fields: [prescriptionsTable.doctorId],
-      references: [doctorsTable.id],
-    }),
-    user: one(usersTable, {
-      fields: [prescriptionsTable.userId],
-      references: [usersTable.id],
-    }),
-  })
-);
+export const schedulesRelations = relations(schedules, ({ one }) => ({
+  doctor: one(doctors, {
+    fields: [schedules.doctorId],
+    references: [doctors.id],
+  }),
+}));
 
-export const adminLogsRelations = relations(adminLogsTable, ({ one }) => ({
-  admin: one(adminsTable, {
-    fields: [adminLogsTable.adminId],
-    references: [adminsTable.id],
+export const symptomsRelations = relations(symptoms, ({ one }) => ({
+  user: one(users, {
+    fields: [symptoms.userId],
+    references: [users.id],
+  }),
+}));
+
+export const prescriptionsRelations = relations(prescriptions, ({ one }) => ({
+  appointment: one(appointments, {
+    fields: [prescriptions.appointmentId],
+    references: [appointments.id],
+  }),
+  doctor: one(doctors, {
+    fields: [prescriptions.doctorId],
+    references: [doctors.id],
+  }),
+  user: one(users, {
+    fields: [prescriptions.userId],
+    references: [users.id],
+  }),
+}));
+
+export const adminLogsRelations = relations(adminLogs, ({ one }) => ({
+  admin: one(admins, {
+    fields: [adminLogs.adminId],
+    references: [admins.id],
   }),
 }));
