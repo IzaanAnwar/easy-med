@@ -12,11 +12,13 @@ Welcome to the Next.js project! This application is built with Next.js and TypeS
 - `public/`: Public assets like images and static files.
 - `src/`: Source code directory.
   - `app/`: Contains Next.js app components and pages.
+    - `(superusers)/`: Contains pages for doctors and admins.
+    - `(users)/`: Contains pages for patients.
     - `api/`: Contains API routes and handlers.
   - `components/`: Reusable UI components.
   - `db/`: Database-related code and schema.
   - `lib/`:Shared utility functions and libraries.
-  - `services/`: Business logic and API interactions.
+  - `services/`: Anything supporting the business logic or the ui components.
   - `supabase/`: Supabase integration code and configuration.
 
 ## Getting Started
