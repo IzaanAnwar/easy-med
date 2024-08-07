@@ -10,6 +10,10 @@ export const envSchema = z.object({
       message: "NODE_ENV must be one of 'development', 'production', or 'test'",
     })
     .optional(),
+  NEXT_PUBLIC_SUPABASE_URL: z
+    .string()
+    .url("NEXT_PUBLIC_SUPABASE_URL must be a valid URL"),
+  NEXT_PUBLIC_SUPABASE_ANON_KEY: z.string(),
 });
 
 export const env = envSchema.parse(process.env);

@@ -14,12 +14,15 @@ import { relations } from "drizzle-orm";
 
 export const users = pgTable("users", {
   id: text("id").primaryKey(),
-  name: varchar("name", { length: 255 }).notNull(),
+  username: varchar("username", { length: 255 }).notNull(),
   email: varchar("email", { length: 255 }).notNull().unique(),
   passwordHash: varchar("password_hash", { length: 255 }).notNull(),
   role: varchar("role", { enum: ["user", "doctor", "admin"] }).notNull(),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
+  firstName: varchar("first_name", { length: 255 }).notNull(),
+  lastName: varchar("last_name", { length: 255 }).notNull(),
+  contactInfo: text("contact_info"),
 });
 
 export const doctors = pgTable("doctors", {
@@ -29,6 +32,9 @@ export const doctors = pgTable("doctors", {
     .$defaultFn(() => crypto.randomUUID()),
   specialization: varchar("specialization", { length: 255 }).notNull(),
   phone: varchar("phone", { length: 20 }).notNull(),
+  licenseNumber: varchar("license_number", { length: 255 }),
+  subscriptionStatus: varchar("subscription_status", { length: 50 }),
+  subscriptionEndDate: timestamp("subscription_end_date"),
   isAvailable: boolean("is_available").notNull().default(true),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
@@ -147,6 +153,35 @@ export const prescriptions = pgTable("prescriptions", {
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
 
+export const subscriptionPlans = pgTable("subscription_plans", {
+  id: text("id")
+    .primaryKey()
+    .notNull()
+    .$defaultFn(() => crypto.randomUUID()),
+  name: varchar("name", { length: 255 }).notNull(),
+  price: integer("price").notNull(),
+  validity: integer("validity").notNull(), // Duration in days or months
+  description: text("description"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+export const subscriptions = pgTable("subscriptions", {
+  userId: text("user_id")
+    .notNull()
+    .references(() => users.id)
+    .primaryKey(),
+  planId: text("plan_id")
+    .notNull()
+    .references(() => subscriptionPlans.id),
+  expiryDate: timestamp("expiry_date"),
+  purchaseDate: timestamp("purchase_date").notNull().defaultNow(),
+  stripeCustomerId: varchar("stripe_customer_id", { length: 255 }).unique(),
+  subscriptionId: varchar("subscription_id", { length: 255 }).unique(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
 export const adminLogs = pgTable("admin_logs", {
   id: text("id")
     .primaryKey()
@@ -227,5 +262,23 @@ export const adminLogsRelations = relations(adminLogs, ({ one }) => ({
   admin: one(admins, {
     fields: [adminLogs.adminId],
     references: [admins.id],
+  }),
+}));
+
+export const subscriptionPlansRelations = relations(
+  subscriptionPlans,
+  ({ many }) => ({
+    subscriptions: many(subscriptions),
+  })
+);
+
+export const subscriptionsRelations = relations(subscriptions, ({ one }) => ({
+  user: one(users, {
+    fields: [subscriptions.userId],
+    references: [users.id],
+  }),
+  plan: one(subscriptionPlans, {
+    fields: [subscriptions.planId],
+    references: [subscriptionPlans.id],
   }),
 }));
